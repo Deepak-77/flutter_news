@@ -1,26 +1,32 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_project_2/provider/news_provider.dart';
+import 'package:flutter_project_2/widgets/tab_bar_widget.dart';
+import 'package:flutter_project_2/widgets/web_view_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
-import '../provider/news_provider.dart';
-import '../widgets/tab_bar_widget.dart';
+class MainScreen extends StatelessWidget {
 
-
-class MainPage extends StatelessWidget {
-
+  final searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+        length: 2,
+        child: Scaffold(
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
+            // title: Text('News', style: TextStyle(color: Colors.black),),
+            // flexibleSpace: Image.network('https://images.hindustantimes.com/img/2022/04/27/550x309/WhatsApp_Image_2021-09-18_at_09.42.18_1631944439782_1651018480535.jpeg'),
+            toolbarHeight: 20,
             backgroundColor: Colors.white,
             bottom: TabBar(
-                labelColor: Colors.black,
+                padding: EdgeInsets.only(top: 20),
+                labelStyle: TextStyle(fontSize: 17),
                 unselectedLabelColor: Colors.grey,
-                labelStyle: TextStyle(fontSize: 20),
+                labelColor: Colors.black,
                 indicatorColor: Colors.red,
                 tabs: [
                   Tab(
@@ -29,108 +35,125 @@ class MainPage extends StatelessWidget {
                   Tab(
                     text: 'Gaming',
                   ),
-                ]
-            ),
+                ]),
           ),
           body: Column(
             children: [
               Container(
-                margin: EdgeInsets.only(top: 10),
-                height: 300,
+                height: 290,
                 child: TabBarView(
                     children: [
                       TabBarWidget('hollywood'),
                       TabBarWidget('gaming'),
-                    ]
-                ),
+                    ]),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Consumer(
-                        builder: (context, ref, child) {
-                          return TextFormField(
-                            onFieldSubmitted: (val) {
-                              ref.read(searchNewsProvider.notifier).getQuery(val);
-                            },
-                            decoration: InputDecoration(
-                                hintText: 'Search News',
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 10),
-                                border: OutlineInputBorder()
-                            ),
-                          );
-                        }
-                    ),
-                    SizedBox(height: 10,),
-                    Container(
-                      height: 350,
-                      child: Consumer(
-                          builder: (context, ref, child) {
-                            final newsData = ref.watch(searchNewsProvider);
-                            if (newsData.isEmpty) {
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.purple,
+              SizedBox(height: 5,),
+              Consumer(
+                  builder: (context, ref, child){
+                    final newsData = ref.watch(searchProvider);
+                    return Container(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: TextFormField(
+                              controller: searchController,
+                              onFieldSubmitted: (val){
+                                ref.read(searchProvider.notifier).searchNews(val);
+                                searchController.clear();
+                              },
+                              decoration: InputDecoration(
+                                  hintText: 'Search news',
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder()
+                              ),),
+                          ),
+                          SizedBox(height: 10,),
+                          newsData.isEmpty ? Container(
+                            child: Text('Loading....'),
+                          ) : newsData[0].title == 'No matches for your search.' ? Container(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 50,),
+                                ElevatedButton(
+                                    onPressed: (){
+                                      ref.refresh(searchProvider.notifier);
+                                    }, child: Text('Reload')
                                 ),
-                              );
-                            } else {
-                              return ListView.builder(
-                                  shrinkWrap: true,
-                                  itemCount: newsData.length,
-                                  itemBuilder: (context, index){
-                                    return Container(
-                                        padding: EdgeInsets.all(10),
-                                        margin: EdgeInsets.only(right: 10),
-                                        height: 300,
-                                        width: double.infinity,
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(15),
-                                              child: CachedNetworkImage(
-                                                errorWidget: (ctx, string, stk){
-                                                  return Image.asset(
-                                                    'assets/images/noImage.jpg', fit: BoxFit.cover,);
-                                                },
-                                                imageUrl: newsData[index].media,
-                                                height: 300,
-                                                width: 170,
-                                                fit: BoxFit.cover,),
-                                            ),
-                                            SizedBox(width: 10,),
-                                            Expanded(
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Text(newsData[index].title, maxLines: 2,),
-                                                    SizedBox(height: 5,),
-                                                    Text(newsData[index].summary, maxLines: 9,),
-                                                    SizedBox(height: 5,),
-                                                    Text(newsData[index].published_date)
-                                                  ],
-                                                ),
-                                              ),
-                                            )
 
-                                          ],
-                                        ));
-                                  }
-                              );
-                            }
-                          }
+                                Text('No matches for your search.'),
+
+                              ],
+                            ),
+                          ): Container(
+                            height: 290,
+                            child: ListView.builder(
+                                itemCount: newsData.length,
+                                itemBuilder: (context, index){
+                                  final dat = newsData[index];
+                                  final formatter = DateFormat('yyyy-MM-dd');
+                                  final date = DateTime.now();
+                                  DateTime dt = DateTime.parse(dat.published_date);
+                                  //   final d =  DateFormat.yMEd().add_jms().format(dt);
+
+                                  return InkWell(
+                                    onTap: (){
+                                      Get.to(() => WebDetail(dat.link), transition: Transition.leftToRight);
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.only(left: 10, top: 10),
+                                      margin: EdgeInsets.only(bottom: 5),
+                                      width: 350,
+                                      height: 270,
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(20),
+                                            child: CachedNetworkImage(
+                                              imageUrl:dat.media,
+                                              errorWidget: (ctx, d ,string) => Image.asset('assets/noimg.jpg'),
+                                              width: 170,
+                                              height: 270,
+                                              fit: BoxFit.cover,  ),
+                                          ),
+                                          SizedBox(width: 5,),
+                                          Expanded(
+                                              child:Column(
+                                                children: [
+                                                  Text(dat.title ,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16),),
+                                                  SizedBox(height: 15,),
+                                                  Text(dat.summary, maxLines: 9,style: TextStyle(color: Colors.blueGrey),),
+                                                  SizedBox(height: 15,),
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(right: 7),
+                                                    child: Align(
+                                                        alignment: Alignment.bottomRight,
+                                                        child: Text(formatter.format(dt))),
+                                                  ),
+                                                ],
+                                              ) )
+
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                            ),
+                          )
+
+
+                        ],
                       ),
-                    )
-                  ],
-                ),
+                    );
+                  }
               )
+
             ],
-          )
-      ),
-    );
+          ),
+        ));
   }
 }

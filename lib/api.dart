@@ -1,3 +1,3 @@
 class Api{
-  static const String searchNewsApi = 'https://free-news.p.rapidapi.com/v1/search';
+  static const String baseUrl = 'https://free-news.p.rapidapi.com/v1/search';
 }

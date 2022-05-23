@@ -1,57 +1,44 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_project_2/models/news.dart';
-
 import '../services/news_services.dart';
 
+final newsProvider = FutureProvider.family((ref,String query) => NewsService.getNews(query: query));
 
+final searchProvider = StateNotifierProvider<SearchNewsProvider, List<News>>((ref) => SearchNewsProvider());
 
+class SearchNewsProvider extends StateNotifier<List<News>>{
+  SearchNewsProvider() : super([]){
 
-final newsProvider = StateNotifierProvider.family<GetQueryNews, List<News>, String>((ref, String query) => GetQueryNews(query: query));
-
-class GetQueryNews extends StateNotifier<List<News>>{
-
-  GetQueryNews({required this.query}) : super([]){
-    getQuery();
+    getNews();
   }
 
 
-
-
-  final String query;
-
-  Future<void> getQuery() async {
-    final response = await NewsService.getQueryNews(query);
+  Future<void>  getNews() async{
+    final response = await NewsService.getDefaultNews();
     state = response;
+  }
+
+
+  Future<void>  searchNews(String query) async{
+    state = [];
+    final response = await NewsService.getNews(query: query);
+    state = response;
+
   }
 
 
 }
 
 
+final proProvider = ChangeNotifierProvider((ref) => ProgressProvider());
+class ProgressProvider extends ChangeNotifier{
 
+  double value = 0.0;
 
-
-
-
-final searchNewsProvider = StateNotifierProvider<SearchNewsProvider, List<News>>((ref) => SearchNewsProvider());
-
-class SearchNewsProvider extends StateNotifier<List<News>>{
-
-  SearchNewsProvider() : super([]){
-    getData();
+  void changeValue(double val){
+    value = val;
+    notifyListeners();
   }
-
-
-  Future<void> getData() async {
-    final response = await NewsService.getNews();
-    state = response;
-  }
-
-  Future<void> getQuery(String query) async {
-    state = [];
-    final response = await NewsService.getQueryNews(query);
-    state = response;
-  }
-
 
 }
